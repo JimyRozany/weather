@@ -2,30 +2,38 @@ import "./App.css";
 //react
 import { useEffect, useState } from "react";
 // material-tailwind
-import { Card, CardBody, Button } from "@material-tailwind/react";
+import { Card, CardBody, Button, Spinner } from "@material-tailwind/react";
 // icons
 import { AiFillCloud } from "react-icons/ai";
 // other
-import axios from "axios";
 import moment from "moment";
 import "moment/min/locales";
 
 // translation
 import { useTranslation } from "react-i18next";
 
+// redux
+import { useDispatch, useSelector } from "react-redux";
+// import thunk function
+import { getWeather } from "./features/weather/weatherSlice";
 function App() {
+  // redux
+  // temperature object
+  const temp = useSelector((state) => {
+    return state.weather.weather;
+  });
+  // is loading
+  const isLoading = useSelector((state) => {
+    return state.weather.isLoading;
+  });
+
+  const dispatch = useDispatch();
+
   // locale
   const [locale, setLocale] = useState("ar");
   // translation
   const { t, i18n } = useTranslation();
-  // temperature state
-  const [temp, setTemp] = useState({
-    currentTemp: null,
-    maxTemp: null,
-    minTemp: null,
-    desc: "",
-    weatherStatusIcon: null,
-  });
+  
   // date&time
   const [dateAndTime, setDateAndTime] = useState(null);
 
@@ -48,24 +56,9 @@ function App() {
     // select language
     i18n.changeLanguage(locale);
     setDateAndTime(moment().locale(locale).format("dddd . Do MMMM YYYY"));
-    axios
-      .get(
-        "https://api.openweathermap.org/data/2.5/weather?lat=31.898043&lon=35.204269&appid=e0c0ed54a37f0444ba95f174ab44dc20"
-      )
-      .then(function (response) {
-        // handle success
-        setTemp({
-          currentTemp: Math.round(response.data.main.temp - 272.15),
-          maxTemp: Math.round(response.data.main.temp_max - 272.15),
-          minTemp: Math.round(response.data.main.temp_min - 272.15),
-          desc: response.data.weather[0].description,
-          weatherStatusIcon: `https://openweathermap.org/img/wn/${response.data.weather[0].icon}@2x.png`,
-        });
-      })
-      .catch(function (error) {
-        // handle error
-        console.log(error);
-      });
+    // get weather info " call api"
+    dispatch(getWeather());
+   
   }, []);
   return (
     <div className="app font-IBM">
@@ -88,23 +81,34 @@ function App() {
               <div className="">
                 {/* Temp */}
                 <div className="mt-5 flex items-center justify-between">
-                  <h3 className="text-6xl">{temp.currentTemp}</h3>
-                  <img src={temp.weatherStatusIcon} alt="weather-status-icon" />
+                  {isLoading ? (
+                    <Spinner color="white" className="h-12 w-12 text-white" />
+                  ) : (
+                    <>
+                      <h3 className="text-6xl">{temp.currentTemp}</h3>
+                      <img
+                        src={temp.weatherStatusIcon}
+                        alt="weather-status-icon"
+                      />
+                    </>
+                  )}
                 </div>
                 {/* End Temp */}
                 {/* desc */}
                 <div className="text-base">
-                  <p>{t(temp.desc)}</p>
+                  {isLoading ? <Spinner /> : <p>{t(temp.desc)}</p>}
                 </div>
                 {/* End desc */}
                 {/* Temp: max and min */}
                 <div className="flex items-center justify-around">
                   <h3>
-                    {t("min")}: {temp.minTemp}
+                    {t("min")}:{" "}
+                    {isLoading ? <Spinner /> : <span>{temp.minTemp}</span>}
                   </h3>
                   <h3 className="mx-2">|</h3>
                   <h3>
-                    {t("max")}: {temp.maxTemp}
+                    {t("max")}:{" "}
+                    {isLoading ? <Spinner /> : <span>{temp.maxTemp}</span>}
                   </h3>
                 </div>
                 {/* End Temp: max and min */}
